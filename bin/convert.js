@@ -22,7 +22,7 @@ export async function convert(userFolder, userAction, userFormat, userQuality) {
           quality = ["-q", "90"];
           break;
         case "mid":
-          quality = ["-q", "80"];
+          quality = ["-q", "75"];
           break;
         case "low":
           quality = ["-q", "60"];

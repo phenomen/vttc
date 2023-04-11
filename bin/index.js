@@ -1,5 +1,5 @@
 #! /usr/bin/env node
-import { intro, select, isCancel, cancel, text } from "@clack/prompts";
+import { intro, select, isCancel, cancel, text, outro } from "@clack/prompts";
 import { convert } from "./convert.js";
 
 async function main() {
@@ -85,6 +85,8 @@ async function main() {
   }
 
   await convert(folder, action, format, quality);
+
+  outro("Your converted files are in the 'output' folder.");
 
   process.exit(0);
 }
