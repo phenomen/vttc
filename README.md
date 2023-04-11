@@ -12,7 +12,7 @@
 
 ## Installation
 
-1. Install [Node.js 18+](https://nodejs.org/en/download) if you don't have it.
+1. Install [Node.js 18+](https://nodejs.org/en/download) if you don't have it installed.
 2. Run:
 
 ```
@@ -34,8 +34,6 @@ npm i vttc -g
 ```
 vttc
 ```
-
-3. Converted files will be in the `./output` folder.
 
 ## Updating
 
