@@ -15,7 +15,12 @@ npm i vttc -g
 
 ## Usage
 
-1. Open a command prompt in the directory with files you want to convert. **Windows**: Right Click -> Open in Terminal.
+1. Open a command prompt in the directory with files you want to convert.
+
+- **Windows**: Right Click -> Open in Terminal.
+- **Mac**: [see instruction](https://support.apple.com/guide/terminal/open-new-terminal-windows-and-tabs-trmlb20c7888/mac)
+- **Linux**: you already know that.
+
 2. Run:
 
 ```
