@@ -1,6 +1,6 @@
 # VTTC - Virtual Tabletop Converter
 
-**VTTC** is a command-line tool (CLI) that quickly converts various image and video formats into compatible VTT formats (Foundry VTT, Roll20, Fantasy Grounds, etc.).
+**VTTC** is a command-line tool (CLI) that quickly converts various image and video formats into formats compatible with most VTT (i.e. Foundry VTT, Roll20, Fantasy Grounds).
 
 ## Installation
 
@@ -11,11 +11,11 @@
 npm i vttc -g
 ```
 
-(folder doesn't matter, it will install a global package)
+(folder doesn't matter, it will install a Global package)
 
 ## Usage
 
-1. Open a command prompt in the directory with the files you want to convert. **Windows**: Right Click -> Open in Terminal.
+1. Open a command prompt in the directory with files you want to convert. **Windows**: Right Click -> Open in Terminal.
 2. Run:
 
 ```
@@ -24,7 +24,7 @@ vttc
 
 ## Update
 
-You may update all global packages with
+You may update all global packages with:
 
 ```
 npm update -g
