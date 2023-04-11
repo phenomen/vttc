@@ -4,6 +4,12 @@
 
 > Right now it's pretty basic and lacks of some options (especially for video formats) but still useful for quick conversion.
 
+## Supported Formats
+
+**Image conversion:** any image into WEBP, PNG, JPEG, AVIF.
+**Video conversion:** any video into WEBM, MP4, OGG, MP3.
+**Audio conversion:** any audio into OGG, MP3.
+
 ## Installation
 
 1. Install [Node.js 18+](https://nodejs.org/en/download) if you don't have it.

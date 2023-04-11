@@ -1,119 +1,91 @@
 #! /usr/bin/env node
-import fs from "node:fs/promises";
-import path from "node:path";
-import { createFFmpeg, fetchFile } from "@ffmpeg.wasm/main";
-import { intro, select, spinner, group, cancel, text } from "@clack/prompts";
-
-async function convert(userFolder, userFormat, userQuality) {
-  const ffmpeg = createFFmpeg({ log: false });
-  const s = spinner();
-
-  const inputDir = path.join(userFolder);
-  const outputDir = path.join(userFolder, "output");
-
-  async function createOutputDir() {
-    try {
-      await fs.mkdir(outputDir);
-    } catch (error) {
-      if (error.code === "EEXIST") {
-        console.log("Output directory already exists");
-      } else {
-        console.error(error);
-      }
-    }
-  }
-
-  await createOutputDir();
-  await ffmpeg.load();
-
-  const files = await fs.readdir(inputDir);
-
-  const compatibleFiles = files.filter((file) =>
-    [
-      ".avif",
-      ".gif",
-      ".jpeg",
-      ".jpg",
-      ".m4v",
-      ".mov",
-      ".mp4",
-      ".mpeg",
-      ".png",
-      ".webm",
-      ".webp",
-    ].includes(path.extname(file).toLowerCase())
-  );
-
-  if (compatibleFiles.length === 0) {
-    console.log("No compatible files found");
-    process.exit(0);
-  }
-
-  s.start(`Converting ${compatibleFiles.length} file(s) into ${userFormat}`);
-
-  for (let i = 0; i < compatibleFiles.length; i++) {
-    const inputFile = path.join(inputDir, compatibleFiles[i]);
-    const outputFile = path.join(
-      outputDir,
-      compatibleFiles[i].replace(/\.[^/.]+$/, "") + "." + userFormat
-    );
-
-    ffmpeg.FS("writeFile", compatibleFiles[i], await fetchFile(inputFile));
-
-    await ffmpeg.run("-i", compatibleFiles[i], "-q", userQuality, outputFile);
-
-    await fs.writeFile(outputFile, ffmpeg.FS("readFile", outputFile));
-  }
-
-  s.stop(`Converted ${compatibleFiles.length} file(s)`);
-
-  process.exit(0);
-}
+import { intro, select, isCancel, cancel, text } from "@clack/prompts";
+import { convert } from "./convert.js";
 
 async function main() {
   console.log();
-  intro(" - VTTC - ");
+  intro(" [ VTTC ] ");
 
-  const prompts = await group(
-    {
-      folder: () =>
-        text({
-          message: "Select an input folder",
-          placeholder: "./",
-          defaultValue: "./",
-          initialValue: "./",
-        }),
+  const folder = await text({
+    message: "Select an input folder",
+    placeholder: "./",
+    defaultValue: "./",
+    initialValue: "./",
+  });
 
-      format: () =>
-        select({
-          message: "Select an output format",
-          options: [
-            { value: "webp", label: "WEBP", hint: "Optimized images" },
-            { value: "webm", label: "WEBM", hint: "Optimized video" },
-            { value: "png", label: "PNG", hint: "Loseless images" },
-            { value: "mp4", label: "MP4", hint: "Legacy video" },
-            { value: "jpeg", label: "JPEG", hint: "Legacy images" },
-          ],
-        }),
+  if (isCancel(folder)) {
+    cancel("Operation cancelled");
+    return process.exit(0);
+  }
 
-      quality: () =>
-        select({
-          message: "Select a quality",
-          options: [
-            { value: "90", label: "HIGH" },
-            { value: "75", label: "MEDIUM" },
-            { value: "60", label: "LOW" },
-          ],
-          initialValue: "75",
-        }),
-    },
-    {
-      onCancel: ({ results }) => {
-        cancel("Operation cancelled.");
-        process.exit(0);
-      },
-    }
-  );
-  convert(prompts.folder, prompts.format, prompts.quality);
+  const action = await select({
+    message: "Select an action",
+    options: [
+      { value: "image", label: "Image conversion" },
+      { value: "video", label: "Video conversion" },
+      { value: "audio", label: "Audio conversion" },
+    ],
+  });
+
+  if (isCancel(action)) {
+    cancel("Operation cancelled");
+    return process.exit(0);
+  }
+
+  let format;
+
+  if (action === "image") {
+    format = await select({
+      message: "Select an output format",
+      options: [
+        { value: "webp", label: "WEBP", hint: "Recommended" },
+        { value: "png", label: "PNG", hint: "Loseless" },
+        { value: "jpeg", label: "JPEG" },
+        { value: "avif", label: "AVIF" },
+      ],
+    });
+  } else if (action === "video") {
+    format = await select({
+      message: "Select an output format",
+      options: [
+        { value: "webm", label: "WEBM", hint: "Recommended" },
+        { value: "mp4", label: "MP4" },
+        { value: "ogg", label: "OGG", hint: "Audio only" },
+        { value: "mp3", label: "MP3", hint: "Audio only" },
+      ],
+    });
+  } else if (action === "audio") {
+    format = await select({
+      message: "Select an output format",
+      options: [
+        { value: "ogg", label: "OGG", hint: "Recommended" },
+        { value: "mp3", label: "MP3" },
+      ],
+    });
+  }
+
+  if (isCancel(format)) {
+    cancel("Operation cancelled");
+    return process.exit(0);
+  }
+
+  const quality = await select({
+    message: "Select a quality",
+    options: [
+      { value: "high", label: "HIGH" },
+      { value: "mid", label: "MEDIUM", hint: "Recommended" },
+      { value: "low", label: "LOW" },
+    ],
+    initialValue: "mid",
+  });
+
+  if (isCancel(quality)) {
+    cancel("Operation cancelled");
+    return process.exit(0);
+  }
+
+  await convert(folder, action, format, quality);
+
+  process.exit(0);
 }
 main().catch(console.error);
