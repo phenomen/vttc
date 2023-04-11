@@ -27,13 +27,15 @@ npm i vttc -g
 
 - **Windows**: Right Click -> Open in Terminal.
 - **Mac**: [see instruction](https://support.apple.com/guide/terminal/open-new-terminal-windows-and-tabs-trmlb20c7888/mac).
-- **Linux**: you already know that.
+- **Linux**: you already should know that.
 
 2. Run:
 
 ```
 vttc
 ```
+
+3. Converted files will be in the `./output` folder.
 
 ## Updating
 
