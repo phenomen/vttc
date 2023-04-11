@@ -6,9 +6,9 @@
 
 ## Supported Formats
 
-**Image conversion:** any image into WEBP, PNG, JPEG, AVIF.
-**Video conversion:** any video into WEBM, MP4, OGG, MP3.
-**Audio conversion:** any audio into OGG, MP3.
+- **Image conversion:** any image into WEBP, PNG, JPEG, AVIF.
+- **Video conversion:** any video into WEBM, MP4, OGG, MP3.
+- **Audio conversion:** any audio into OGG, MP3.
 
 ## Installation
 
