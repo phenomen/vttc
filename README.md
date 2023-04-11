@@ -2,8 +2,6 @@
 
 **VTTC** is a command line tool (CLI) that quickly converts various image and video formats into optimized formats compatible with popular VTTs (e.g. Foundry VTT, Roll20, Fantasy Grounds).
 
-> Right now it's pretty basic and lacks of some options (especially for video formats) but still useful for quick conversion.
-
 ## Supported Formats
 
 - **Image conversion:** any image into WEBP, PNG, JPEG, AVIF.
@@ -42,6 +40,12 @@ You may update all global packages with:
 ```
 npm update -g
 ```
+
+## TODO
+
+- [ ] Launch with arguments bypassing prompts
+- [ ] FFmpeg V5
+- [ ] More options (remove audio track, remove transparency, custom framerate, etc.)
 
 ## Credits
 
