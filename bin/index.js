@@ -3,7 +3,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { createFFmpeg, fetchFile } from "@ffmpeg.wasm/main";
 import { intro, select, spinner, group, cancel, text } from "@clack/prompts";
-import color from "picocolors";
 
 async function convert(userFolder, userFormat, userQuality) {
   const ffmpeg = createFFmpeg({ log: false });
@@ -16,7 +15,11 @@ async function convert(userFolder, userFormat, userQuality) {
     try {
       await fs.mkdir(outputDir);
     } catch (error) {
-      console.error(error);
+      if (error.code === "EEXIST") {
+        console.log("Output directory already exists");
+      } else {
+        console.error(error);
+      }
     }
   }
 
@@ -26,9 +29,19 @@ async function convert(userFolder, userFormat, userQuality) {
   const files = await fs.readdir(inputDir);
 
   const compatibleFiles = files.filter((file) =>
-    [".jpg", ".jpeg", ".avif", ".png", "webp", ".gif", "webm", ".mov", ".mp4", ".mpeg"].includes(
-      path.extname(file).toLowerCase()
-    )
+    [
+      ".avif",
+      ".gif",
+      ".jpeg",
+      ".jpg",
+      ".m4v",
+      ".mov",
+      ".mp4",
+      ".mpeg",
+      ".png",
+      ".webm",
+      ".webp",
+    ].includes(path.extname(file).toLowerCase())
   );
 
   if (compatibleFiles.length === 0) {
@@ -36,7 +49,7 @@ async function convert(userFolder, userFormat, userQuality) {
     process.exit(0);
   }
 
-  s.start(`Converting ${compatibleFiles.length} files into ${userFormat}`);
+  s.start(`Converting ${compatibleFiles.length} file(s) into ${userFormat}`);
 
   for (let i = 0; i < compatibleFiles.length; i++) {
     const inputFile = path.join(inputDir, compatibleFiles[i]);
@@ -52,20 +65,20 @@ async function convert(userFolder, userFormat, userQuality) {
     await fs.writeFile(outputFile, ffmpeg.FS("readFile", outputFile));
   }
 
-  s.stop(`${compatibleFiles.length} files are converted`);
+  s.stop(`Converted ${compatibleFiles.length} file(s)`);
 
   process.exit(0);
 }
 
 async function main() {
   console.log();
-  intro(color.bgYellow(color.black(" VTTC ")));
+  intro(" - VTTC - ");
 
   const prompts = await group(
     {
       folder: () =>
         text({
-          message: "Choose an input folder",
+          message: "Select an input folder",
           placeholder: "./",
           defaultValue: "./",
           initialValue: "./",
@@ -73,7 +86,7 @@ async function main() {
 
       format: () =>
         select({
-          message: "Choose an output format",
+          message: "Select an output format",
           options: [
             { value: "webp", label: "WEBP", hint: "Optimized images" },
             { value: "webm", label: "WEBM", hint: "Optimized video" },
@@ -85,7 +98,7 @@ async function main() {
 
       quality: () =>
         select({
-          message: "Choose a quality",
+          message: "Select a quality",
           options: [
             { value: "90", label: "HIGH" },
             { value: "75", label: "MEDIUM" },
