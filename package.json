@@ -1,0 +1,27 @@
+{
+  "name": "vttc",
+  "version": "1.0.0",
+  "description": "CLI file converter and optimizer for popular VTT formats",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "cli",
+    "wasm",
+    "ffmpeg",
+    "converter",
+    "webp",
+    "webm",
+    "vtt"
+  ],
+  "author": "phenomen#1337",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@clack/prompts": "^0.6.3",
+    "@ffmpeg.wasm/main": "^0.12.0",
+    "@ffmpeg.wasm/core-mt": "^0.12.0",
+    "picocolors": "^1.0.0"
+  }
+}
