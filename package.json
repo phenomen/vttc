@@ -1,10 +1,13 @@
 {
   "name": "vttc",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI file converter and optimizer for popular VTT formats",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
+  },
+  "bin": {
+    "vttc": "bin/index.js"
   },
   "keywords": [
     "cli",
