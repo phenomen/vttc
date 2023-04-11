@@ -1,6 +1,8 @@
 # VTTC - Virtual Tabletop Converter
 
-**VTTC** is a command-line tool (CLI) that quickly converts various image and video formats into formats compatible with most VTT (i.e. Foundry VTT, Roll20, Fantasy Grounds).
+**VTTC** is a command-line tool (CLI) that quickly converts various image and video formats into file formats compatible with most VTT (i.e. Foundry VTT, Roll20, Fantasy Grounds).
+
+> Right now it's pretty basic and lacks of some options (especially for video formats) but still useful for quick conversion.
 
 ## Installation
 
@@ -37,5 +39,5 @@ npm update -g
 
 ## Credits
 
-- @clack/prompts - fancy CLI prompts
-- @DreamOfIce/ffmpeg.wasm - working fork of @ffmpegwasm/ffmpeg.wasm
+- [@clack/prompts](https://github.com/natemoo-re/clack) - fancy CLI prompts
+- [@DreamOfIce/ffmpeg.wasm](https://github.com/DreamOfIce/ffmpeg.wasm-core) - working fork of [@ffmpegwasm/ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm)
