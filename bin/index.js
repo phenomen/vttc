@@ -18,51 +18,18 @@ async function main() {
     return process.exit(0);
   }
 
-  const action = await select({
-    message: "Select an action",
+  const format = await select({
+    message: "Select an output format",
     options: [
-      { value: "image", label: "Image conversion" },
-      { value: "video", label: "Video conversion" },
-      { value: "audio", label: "Audio conversion" },
+      { value: "webp", label: "WEBP", hint: "Recommended for images" },
+      { value: "png", label: "PNG" },
+      { value: "jpeg", label: "JPEG" },
+      { value: "webm", label: "WEBM", hint: "Recommended for video" },
+      { value: "mp4", label: "MP4" },
+      { value: "ogg", label: "OGG", hint: "Recommended for audio" },
+      { value: "mp3", label: "MP3" },
     ],
   });
-
-  if (isCancel(action)) {
-    cancel("Operation cancelled");
-    return process.exit(0);
-  }
-
-  let format;
-
-  if (action === "image") {
-    format = await select({
-      message: "Select an output format",
-      options: [
-        { value: "webp", label: "WEBP", hint: "Recommended" },
-        { value: "png", label: "PNG", hint: "Loseless" },
-        { value: "jpeg", label: "JPEG" },
-        { value: "avif", label: "AVIF" },
-      ],
-    });
-  } else if (action === "video") {
-    format = await select({
-      message: "Select an output format",
-      options: [
-        { value: "webm", label: "WEBM", hint: "Recommended" },
-        { value: "mp4", label: "MP4" },
-        { value: "ogg", label: "OGG", hint: "Audio only" },
-        { value: "mp3", label: "MP3", hint: "Audio only" },
-      ],
-    });
-  } else if (action === "audio") {
-    format = await select({
-      message: "Select an output format",
-      options: [
-        { value: "ogg", label: "OGG", hint: "Recommended" },
-        { value: "mp3", label: "MP3" },
-      ],
-    });
-  }
 
   if (isCancel(format)) {
     cancel("Operation cancelled");
@@ -84,7 +51,7 @@ async function main() {
     return process.exit(0);
   }
 
-  await convert(folder, action, format, quality);
+  await convert(folder, format, quality);
 
   outro("Your converted files are in the 'output' folder.");
 

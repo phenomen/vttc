@@ -1,16 +1,16 @@
 {
   "name": "vttc",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "CLI file converter and optimizer for popular VTT formats",
   "repository": "phenomen/vttc",
   "author": "phenomen#1337",
   "license": "MIT",
   "main": "index.js",
   "scripts": {
-    "start": "node bin/index.js"
+    "start": "node --experimental-wasm-threads bin/index.js"
   },
   "bin": {
-    "vttc": "bin/index.js"
+    "vttc": "bin/index.js --experimental-wasm-threads"
   },
   "keywords": [
     "cli",

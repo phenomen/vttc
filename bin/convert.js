@@ -3,76 +3,64 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { spinner } from "@clack/prompts";
 
-const formatsImage = [".avif", ".jpeg", ".jpg", ".png", ".webp"];
-const formatsVideo = [".m4v", ".mov", ".mp4", ".mpeg", ".webm"];
-const formatsAudio = [".m4a", ".mp3", ".wav", ".ogg"];
+const formatsImage = [".avif", ".jpeg", ".jpg", ".png", ".webp", ".tiff"];
+const formatsVideo = [".avi", ".m4v", ".mov", ".mp4", ".mpeg", ".webm"];
+const formatsAudio = [...formatsVideo, ".m4a", ".mp3", ".wav", ".flac", ".ogg"];
 
-export async function convert(userFolder, userAction, userFormat, userQuality) {
+export async function convert(userFolder, userFormat, userQuality) {
   // SETTINGS
 
+  let action;
   let compatibleFormats = [];
-  let quality = [];
   let extra = [];
+  let quality = [];
 
-  switch (userAction) {
-    case "image":
-      compatibleFormats = formatsImage;
-      switch (userQuality) {
-        case "high":
-          quality = ["-q", "90"];
-          break;
-        case "mid":
-          quality = ["-q", "75"];
-          break;
-        case "low":
-          quality = ["-q", "60"];
-          break;
-      }
+  if (["webp", "png", "avif", "jpg", "jpeg"].includes(userFormat)) {
+    action = "image";
+    compatibleFormats = formatsImage;
 
-      break;
-    case "video":
-      compatibleFormats = formatsVideo;
-      switch (userQuality) {
-        case "high":
-          quality = ["-b:v", "2M", "-b:a", "128k"];
-          break;
-        case "mid":
-          quality = ["-b:v", "1M", "-b:a", "128k"];
-          break;
-        case "low":
-          quality = ["-b:v", "512k", "-b:a", "64k"];
-          break;
-      }
-      break;
-    case "audio":
-      compatibleFormats = formatsAudio;
-      switch (userQuality) {
-        case "high":
-          quality = ["-b:a", "192k"];
-          break;
-        case "mid":
-          quality = ["-b:a", "128k"];
-          break;
-        case "low":
-          quality = ["-b:a", "64k"];
-          break;
-      }
-      break;
+    if (userQuality === "high") {
+      quality = ["-q", "90"];
+    } else if (userQuality === "mid") {
+      quality = ["-q", "75"];
+    } else if (userQuality === "low") {
+      quality = ["-q", "60"];
+    }
+  } else if (["webm", "mp4"].includes(userFormat)) {
+    action = "video";
+    compatibleFormats = formatsVideo;
+
+    if (userQuality === "high") {
+      quality = ["-b:v", "2M", "-b:a", "128k"];
+    } else if (userQuality === "mid") {
+      quality = ["-b:v", "1M", "-b:a", "128k"];
+    } else if (userQuality === "low") {
+      quality = ["-b:v", "512k", "-b:a", "64k"];
+    }
+  } else if (["mp3", "ogg"].includes(userFormat)) {
+    action = "audio";
+    compatibleFormats = formatsAudio;
+
+    if (userQuality === "high") {
+      quality = ["-b:a", "192k"];
+    } else if (userQuality === "mid") {
+      quality = ["-b:a", "128k"];
+    } else if (userQuality === "low") {
+      quality = ["-b:a", "64k"];
+    }
+  } else {
+    console.error("Unknown output format");
+    process.exit(0);
   }
 
-  switch (userFormat) {
-    case "webm":
-      extra = ["-c:v", "libvpx", "-c:a", "libvorbis", "-row-mt", "1"];
-      break;
-    case "mp4":
-      extra = ["-c:a", "libvorbis"];
-      break;
-    case "ogg":
-      extra = ["-vn"];
-      break;
-    case "mp3":
-      extra = ["-vn"];
-      break;
+  if (userFormat === "webm") {
+    extra = ["-c:v", "libvpx", "-c:a", "libvorbis", "-row-mt", "1", "-f", "webm"];
+  } else if (userFormat === "mp4") {
+    extra = ["-c:a", "libvorbis"];
+  } else if (userFormat === "ogg") {
+    extra = ["-vn", "-c:a", "libvorbis"];
+  } else if (userFormat === "mp3") {
+    extra = ["-vn"];
   }
 
   // FILES
@@ -108,7 +96,7 @@ export async function convert(userFolder, userAction, userFormat, userQuality) {
 
   // FFMPEG
 
-  const ffmpeg = createFFmpeg({ log: false });
+  const ffmpeg = createFFmpeg({ log: true });
 
   await ffmpeg.load();
 
@@ -125,15 +113,15 @@ export async function convert(userFolder, userAction, userFormat, userQuality) {
 
     ffmpeg.FS("writeFile", compatibleFiles[i], await fetchFile(inputFile));
 
-    if (userAction === "image") {
+    if (action === "image") {
       await ffmpeg.run("-i", compatibleFiles[i], ...quality, outputFile);
     }
 
-    if (userAction === "video") {
+    if (action === "video") {
       await ffmpeg.run("-i", compatibleFiles[i], ...quality, ...extra, outputFile);
     }
 
-    if (userAction === "audio") {
+    if (action === "audio") {
       await ffmpeg.run("-i", compatibleFiles[i], ...quality, ...extra, outputFile);
     }
 
