@@ -35,10 +35,9 @@ vttc
 
 ## Updating
 
-You may update all global packages with:
 
 ```
-npm update -g
+npm update vttc -g
 ```
 
 ## TODO
