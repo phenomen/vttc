@@ -1,4 +1,5 @@
 import { createFFmpeg, fetchFile } from "@ffmpeg.wasm/main";
+import sharp from "sharp";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { spinner } from "@clack/prompts";
@@ -36,7 +37,7 @@ export async function convert(userFolder, userFormat, userQuality) {
 	let action;
 	let compatibleFormats = [];
 	let extra = [];
-	let quality = [];
+	let quality;
 
 	// SETTINGS
 
@@ -45,11 +46,11 @@ export async function convert(userFolder, userFormat, userQuality) {
 		compatibleFormats = formatsImage;
 
 		if (userQuality === "high") {
-			quality = ["-q", "90"];
+			quality = 90;
 		} else if (userQuality === "mid") {
-			quality = ["-q", "75"];
+			quality = 80;
 		} else if (userQuality === "low") {
-			quality = ["-q", "60"];
+			quality = 60;
 		}
 	} else if (["webm", "mp4"].includes(userFormat)) {
 		action = "video";
@@ -128,37 +129,63 @@ export async function convert(userFolder, userFormat, userQuality) {
 
 	await createOutputDir();
 
-	// FFMPEG
-
-	const ffmpeg = createFFmpeg({ log: false });
-
-	await ffmpeg.load();
-
 	const s = spinner();
 
-	s.start(`Converting ${compatibleFiles.length} file(s) into ${userFormat}`);
+	if (action === "video" || action === "audio") {
+		// FFMPEG
 
-	for (let i = 0; i < compatibleFiles.length; i++) {
-		const inputFile = path.join(inputDir, compatibleFiles[i]);
-		const outputFile = path.join(
-			outputDir,
-			`${compatibleFiles[i].replace(/\.[^/.]+$/, "")}.${userFormat}`,
-		);
+		const ffmpeg = createFFmpeg({ log: false });
 
-		ffmpeg.FS("writeFile", compatibleFiles[i], await fetchFile(inputFile));
+		await ffmpeg.load();
 
-		await ffmpeg.run(
-			"-i",
-			compatibleFiles[i],
-			...quality,
-			...extra,
-			outputFile,
-		);
+		s.start(`Converting ${compatibleFiles.length} file(s) into ${userFormat}`);
 
-		await fs.writeFile(outputFile, ffmpeg.FS("readFile", outputFile));
+		for (let i = 0; i < compatibleFiles.length; i++) {
+			const inputFile = path.join(inputDir, compatibleFiles[i]);
+			const outputFile = path.join(
+				outputDir,
+				`${compatibleFiles[i].replace(/\.[^/.]+$/, "")}.${userFormat}`,
+			);
 
-		ffmpeg.FS("unlink", outputFile);
+			ffmpeg.FS("writeFile", compatibleFiles[i], await fetchFile(inputFile));
+
+			await ffmpeg.run(
+				"-i",
+				compatibleFiles[i],
+				...quality,
+				...extra,
+				outputFile,
+			);
+
+			await fs.writeFile(outputFile, ffmpeg.FS("readFile", outputFile));
+
+			ffmpeg.FS("unlink", outputFile);
+		}
+
+		s.stop(`Converted ${compatibleFiles.length} file(s)`);
 	}
 
-	s.stop(`Converted ${compatibleFiles.length} file(s)`);
+	if (action === "image") {
+		s.start(`Converting ${compatibleFiles.length} file(s) into ${userFormat}`);
+
+		for (let i = 0; i < compatibleFiles.length; i++) {
+			const inputFile = path.join(inputDir, compatibleFiles[i]);
+			const outputFile = path.join(
+				outputDir,
+				`${compatibleFiles[i].replace(/\.[^/.]+$/, "")}.${userFormat}`,
+			);
+
+			let sharpObject = sharp(inputFile);
+
+			if (userFormat === "jpg") {
+				sharpObject = sharpObject.jpeg({ quality: quality });
+			} else if (userFormat === "webp") {
+				sharpObject = sharpObject.webp({ quality: quality });
+			}
+
+			await sharpObject.toFile(outputFile);
+		}
+
+		s.stop(`Converted ${compatibleFiles.length} file(s)`);
+	}
 }
