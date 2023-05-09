@@ -23,7 +23,7 @@ async function main() {
 		options: [
 			{ value: "webp", label: "WEBP", hint: "Recommended for images" },
 			{ value: "png", label: "PNG" },
-			{ value: "jpg", label: "JPG" },
+			{ value: "jpeg", label: "JPEG" },
 			{ value: "webm", label: "WEBM", hint: "Recommended for video" },
 			{ value: "mp4", label: "MP4" },
 			{ value: "ogg", label: "OGG", hint: "Recommended for audio" },

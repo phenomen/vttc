@@ -13,6 +13,7 @@ export async function convert(userFolder, userFormat, userQuality) {
 		".png",
 		".tiff",
 		".webp",
+		".jfif",
 	];
 	const formatsVideo = [
 		".avi",
@@ -41,7 +42,7 @@ export async function convert(userFolder, userFormat, userQuality) {
 
 	// SETTINGS
 
-	if (["webp", "png", "avif", "jpg", "jpeg"].includes(userFormat)) {
+	if (["webp", "png", "avif", "jpg", "jpeg", "jfif"].includes(userFormat)) {
 		action = "image";
 		compatibleFormats = formatsImage;
 
@@ -131,14 +132,14 @@ export async function convert(userFolder, userFormat, userQuality) {
 
 	const s = spinner();
 
+	s.start(`Converting ${compatibleFiles.length} file(s) into ${userFormat}`);
+
 	if (action === "video" || action === "audio") {
 		// FFMPEG
 
 		const ffmpeg = createFFmpeg({ log: false });
 
 		await ffmpeg.load();
-
-		s.start(`Converting ${compatibleFiles.length} file(s) into ${userFormat}`);
 
 		for (let i = 0; i < compatibleFiles.length; i++) {
 			const inputFile = path.join(inputDir, compatibleFiles[i]);
@@ -161,13 +162,9 @@ export async function convert(userFolder, userFormat, userQuality) {
 
 			ffmpeg.FS("unlink", outputFile);
 		}
-
-		s.stop(`Converted ${compatibleFiles.length} file(s)`);
 	}
 
 	if (action === "image") {
-		s.start(`Converting ${compatibleFiles.length} file(s) into ${userFormat}`);
-
 		for (let i = 0; i < compatibleFiles.length; i++) {
 			const inputFile = path.join(inputDir, compatibleFiles[i]);
 			const outputFile = path.join(
@@ -177,15 +174,22 @@ export async function convert(userFolder, userFormat, userQuality) {
 
 			let sharpObject = sharp(inputFile);
 
-			if (userFormat === "jpg") {
+			if (userFormat === "jpeg") {
 				sharpObject = sharpObject.jpeg({ quality: quality });
 			} else if (userFormat === "webp") {
 				sharpObject = sharpObject.webp({ quality: quality });
 			}
 
+			const metadata = await sharpObject.metadata();
+
+			const { width, height } = metadata;
+
+			if (width > 16383 || height > 16383) {
+				sharpObject = sharpObject.resize(16383);
+			}
+
 			await sharpObject.toFile(outputFile);
 		}
-
-		s.stop(`Converted ${compatibleFiles.length} file(s)`);
 	}
+	s.stop(`Converted ${compatibleFiles.length} file(s)`);
 }
