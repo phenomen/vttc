@@ -1,31 +1,31 @@
 {
-	"name": "vttc",
-	"version": "1.7.6",
-	"description": "CLI file converter and optimizer for popular VTT formats",
-	"repository": "phenomen/vttc",
-	"author": "phenomen#1337",
-	"license": "MIT",
-	"main": "index.js",
-	"scripts": {
-		"start": "node bin/index.js"
-	},
-	"bin": {
-		"vttc": "bin/index.js"
-	},
-	"keywords": [
-		"cli",
-		"wasm",
-		"ffmpeg",
-		"converter",
-		"webp",
-		"webm",
-		"vtt"
-	],
-	"type": "module",
-	"dependencies": {
-		"@clack/prompts": "^0.7.0",
-		"ffmpeg-static": "^5.2.0",
-		"fluent-ffmpeg": "^2.1.2",
-		"sharp": "^0.32.5"
-	}
+  "name": "vttc",
+  "version": "2.0.0",
+  "description": "CLI file converter and optimizer for popular VTT formats",
+  "repository": "phenomen/vttc",
+  "author": "phenomen#1337",
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": {
+    "start": "node bin/index.js"
+  },
+  "bin": {
+    "vttc": "bin/index.js"
+  },
+  "keywords": [
+    "cli",
+    "wasm",
+    "ffmpeg",
+    "converter",
+    "webp",
+    "webm",
+    "vtt"
+  ],
+  "type": "module",
+  "dependencies": {
+    "@clack/prompts": "^0.7.0",
+    "ffmpeg-static": "^5.2.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "sharp": "^0.32.6"
+  }
 }

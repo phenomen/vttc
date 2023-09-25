@@ -35,18 +35,18 @@ vttc
 
 ## Updating
 
-
 ```
 npm update vttc -g
 ```
 
 ## TODO
 
+- [x] Recursive directory processing
+- [x] FFmpeg V6
 - [ ] Launch with arguments bypassing prompts
-- [ ] FFmpeg V5
 - [ ] More options (remove audio track, remove transparency, custom framerate, etc.)
 
 ## Credits
 
 - [@clack/prompts](https://github.com/natemoo-re/clack) - fancy CLI prompts
-- [@DreamOfIce/ffmpeg.wasm](https://github.com/DreamOfIce/ffmpeg.wasm-core) - working fork of [@ffmpegwasm/ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm)
+- [@fluent-ffmpeg](https://github.com/fluent-ffmpeg) - ffmpeg wrapper for Node

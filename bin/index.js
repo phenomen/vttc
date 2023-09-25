@@ -1,10 +1,11 @@
 #! /usr/bin/env node
 import { intro, select, isCancel, cancel, text, outro } from "@clack/prompts";
+import { createFileData } from "./files.js";
 import { convert } from "./convert.js";
 
 async function main() {
   console.log();
-  intro(" [ VTTC 1.7.6 ] ");
+  intro(" [ VTTC 2.0.0 ] ");
 
   const folder = await text({
     message: "Select an input folder",
@@ -51,7 +52,9 @@ async function main() {
     return process.exit(0);
   }
 
-  await convert(folder, format, quality);
+  const fileData = await createFileData(folder, format, quality);
+
+  await convert(fileData);
 
   outro("Your converted files are in the 'output' folder.");
 
