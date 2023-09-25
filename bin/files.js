@@ -102,28 +102,24 @@ export async function createFileData(inputFolder, userFormat, userQuality) {
   setSettings(userFormat, userQuality);
 
   const filePaths = [];
-  const outputDir = path.join(inputFolder, "output");
 
-  try {
-    if (await directoryExists(outputDir)) {
-      await fs.rm(outputDir, { recursive: true });
-    }
+  const scanDirectory = async (dir) => {
+    const files = await fs.readdir(dir);
 
-    await fs.mkdir(outputDir, { recursive: true });
+    for (const file of files) {
+      const filePath = path.join(dir, file);
+      const stats = await fs.stat(filePath);
 
-    const scanDirectory = async (dir) => {
-      const files = await fs.readdir(dir);
+      if (stats.isDirectory()) {
+        await scanDirectory(filePath);
+      } else {
+        if (compatibleFormats.includes(path.extname(file))) {
+          const relativePath = path.relative(inputFolder, filePath);
+          const outputPath = path.join(inputFolder, "output", relativePath);
+          const outputDir = path.dirname(outputPath);
 
-      for (const file of files) {
-        const filePath = path.join(dir, file);
-        const stats = await fs.stat(filePath);
-
-        if (stats.isDirectory()) {
-          await scanDirectory(filePath);
-        } else {
-          if (compatibleFormats.includes(path.extname(file))) {
-            const relativePath = path.relative(inputFolder, filePath);
-            const outputPath = path.join(outputDir, relativePath);
+          try {
+            await fs.mkdir(outputDir, { recursive: true });
 
             const outputFileName =
               path.basename(outputPath, path.extname(outputPath)) +
@@ -134,25 +130,16 @@ export async function createFileData(inputFolder, userFormat, userQuality) {
               input: path.normalize(filePath),
               output: path.normalize(finalOutputPath),
             });
+          } catch (err) {
+            console.error(`Error creating directory: ${outputDir}`);
+            console.error(err);
           }
         }
       }
-    };
+    }
+  };
 
-    await scanDirectory(inputFolder);
-  } catch (err) {
-    console.error(`Error creating or deleting directory: ${outputDir}`);
-    console.error(err);
-  }
+  await scanDirectory(inputFolder);
 
   return { filePaths, settings };
-}
-
-async function directoryExists(dirPath) {
-  try {
-    await fs.access(dirPath);
-    return true;
-  } catch (err) {
-    return false;
-  }
 }
