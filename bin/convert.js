@@ -82,9 +82,9 @@ export async function convert(fileData) {
         const metadata = await sharpObject.metadata();
         const { width, height } = metadata;
 
-        if (width > 16383 || height > 16383) {
-          sharpObject = sharpObject.resize(16383);
-          console.log("Image is > 16383px and was resized for compatibility.");
+        if (width > 16384 || height > 16384) {
+          sharpObject = sharpObject.resize(16384);
+          console.log("Image is > 16384px and was resized for compatibility.");
         }
 
         await sharpObject.toFile(outputFile);
