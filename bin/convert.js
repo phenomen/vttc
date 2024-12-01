@@ -5,6 +5,11 @@ import ffmpegPath from "ffmpeg-static";
 import ffmpegFluent from "fluent-ffmpeg";
 
 export async function convert(fileData) {
+  if (!fileData?.filePaths?.length) {
+    console.error("No valid files to convert");
+    process.exit(1);
+  }
+
   const { filePaths, settings } = fileData;
   const { format, action, quality, extra } = settings;
 
@@ -62,14 +67,14 @@ export async function convert(fileData) {
       await Promise.all(transcodePromises);
     } catch (error) {
       console.log(error);
+      s.stop(`Failed to convert files: ${error.message}`);
+      process.exit(1);
     }
   }
 
   if (action === "image") {
-    for (const file of filePaths) {
-      const inputFile = file.input;
-      const outputFile = file.output;
-
+    const imagePromises = filePaths.map(async (file) => {
+      const { input: inputFile, output: outputFile } = file;
       let sharpObject = sharp(inputFile);
 
       if (format === "jpeg") {
@@ -90,7 +95,17 @@ export async function convert(fileData) {
         await sharpObject.toFile(outputFile);
       } catch (error) {
         console.error("Error processing image:", error);
+        s.stop(`Failed to convert image ${inputFile}: ${error.message}`);
+        process.exit(1);
       }
+    });
+
+    try {
+      await Promise.all(imagePromises);
+    } catch (error) {
+      console.error("Error processing images:", error);
+      s.stop(`Failed to convert images: ${error.message}`);
+      process.exit(1);
     }
   }
 

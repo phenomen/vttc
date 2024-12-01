@@ -5,7 +5,7 @@ import { convert } from "./convert.js";
 
 async function main() {
   console.log();
-  intro(" [ VTTC 2.0.1 ] ");
+  intro(" [ VTTC 2.1.0 ] ");
 
   const folder = await text({
     message: "Select an input folder",

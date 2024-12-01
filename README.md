@@ -8,16 +8,9 @@
 - **Video conversion:** any video into WEBM, MP4, OGG, MP3.
 - **Audio conversion:** any audio into OGG, MP3.
 
-## Installation
+## Prerequisites
 
-1. Install [Node.js 18+](https://nodejs.org/en/download) if you don't have it installed.
-2. Run:
-
-```
-npm i vttc -g
-```
-
-(folder doesn't matter, it will install a Global package)
+Install [Node.js 20+](https://nodejs.org/en/download) if you don't have it installed.
 
 ## Usage
 
@@ -30,13 +23,7 @@ npm i vttc -g
 2. Run:
 
 ```
-vttc
-```
-
-## Updating
-
-```
-npm update vttc -g
+npx vttc
 ```
 
 ## TODO
@@ -48,5 +35,5 @@ npm update vttc -g
 
 ## Credits
 
-- [@clack/prompts](https://github.com/natemoo-re/clack) - fancy CLI prompts
-- [@fluent-ffmpeg](https://github.com/fluent-ffmpeg) - ffmpeg wrapper for Node
+- [@clack/prompts](https://github.com/natemoo-re/clack) - CLI prompts
+- [@ffmpegwasm/ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm) - FFmpeg WASM
