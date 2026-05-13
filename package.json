@@ -6,10 +6,10 @@
   "author": "phenomen",
   "license": "MIT",
   "scripts": {
-    "start": "bun bin/index.js"
+    "start": "bun src/index.ts"
   },
   "bin": {
-    "vttc": "bin/index.js"
+    "vttc": "src/index.ts"
   },
   "keywords": [
     "cli",
