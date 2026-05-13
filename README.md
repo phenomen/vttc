@@ -1,6 +1,6 @@
-# VTTC 4.0.0 - Media File Converter
+# VTTC  - VTT Media  Converter & Optimizer
 
-A Bun CLI file converter and optimizer powered by [Bun.Image](https://bun.com/docs/runtime/image) and [Mediabunny](https://github.com/Vanilagy/mediabunny).
+A CLI media converter and optimizer powered by [Bun.Image](https://bun.com/docs/runtime/image) and [Mediabunny](https://github.com/Vanilagy/mediabunny).
 
 ## Features
 
