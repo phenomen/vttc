@@ -1,11 +1,12 @@
-#! /usr/bin/env node
+#!/usr/bin/env bun
 import { intro, select, isCancel, cancel, text, outro } from "@clack/prompts";
 import { createFileData } from "./files.js";
+import type { OutputFormat, QualityLevel } from "./files.js";
 import { convert } from "./convert.js";
 
 async function main() {
   console.log();
-  intro(" [ VTTC 2.1.0 ] ");
+  intro(" [ VTTC 4.0.0 ] ");
 
   const folder = await text({
     message: "Select an input folder",
@@ -19,7 +20,7 @@ async function main() {
     return process.exit(0);
   }
 
-  const format = await select({
+  const format = await select<OutputFormat>({
     message: "Select an output format",
     options: [
       { value: "webp", label: "WEBP", hint: "Recommended for images" },
@@ -28,7 +29,7 @@ async function main() {
       { value: "webm", label: "WEBM", hint: "Recommended for video" },
       { value: "mp4", label: "MP4" },
       { value: "ogg", label: "OGG", hint: "Recommended for audio" },
-      { value: "mp3", label: "MP3" },
+      { value: "aac", label: "AAC" },
     ],
   });
 
@@ -37,7 +38,7 @@ async function main() {
     return process.exit(0);
   }
 
-  const quality = await select({
+  const quality = await select<QualityLevel>({
     message: "Select a quality",
     options: [
       { value: "high", label: "HIGH" },
