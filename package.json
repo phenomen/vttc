@@ -1,6 +1,6 @@
 {
   "name": "vttc",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "description": "CLI file converter and optimizer for popular media formats. Requires Bun.",
   "repository": "phenomen/vttc",
   "author": "phenomen",
@@ -33,5 +33,16 @@
     "@clack/prompts": "^1.4.0",
     "@mediabunny/server": "^1.45.0",
     "mediabunny": "^1.45.0"
-  }
+  },
+  "trustedDependencies": [
+    "node-av",
+    "@seydx/node-av-darwin-arm64",
+    "@seydx/node-av-darwin-x64",
+    "@seydx/node-av-linux-arm64",
+    "@seydx/node-av-linux-x64",
+    "@seydx/node-av-win32-arm64-mingw",
+    "@seydx/node-av-win32-arm64-msvc",
+    "@seydx/node-av-win32-x64-mingw",
+    "@seydx/node-av-win32-x64-msvc"
+  ]
 }
