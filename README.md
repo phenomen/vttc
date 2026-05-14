@@ -1,6 +1,6 @@
-# VTTC  - VTT Media  Converter & Optimizer
+# VTTC  - VTT Media Converter & Optimizer
 
-A CLI media converter and optimizer powered by [Bun.Image](https://bun.com/docs/runtime/image) and [Mediabunny](https://github.com/Vanilagy/mediabunny).
+A CLI media converter and optimizer powered by [Bun.Image](https://bun.com/docs/runtime/image) and [Mediabunny](https://github.com/Vanilagy/mediabunny). Made for batch processing game and virtual tabletop assets.
 
 ## Features
 

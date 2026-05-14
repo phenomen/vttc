@@ -1,4 +1,5 @@
 import { spinner, log } from "@clack/prompts";
+import { registerMediabunnyServer } from "@mediabunny/server";
 import path from "path";
 import {
   Input,
@@ -25,53 +26,33 @@ import type {
   VideoOutputFormat,
 } from "./files.js";
 
+registerMediabunnyServer();
+
 type MediaOutputFormat = VideoOutputFormat | AudioOutputFormat;
 type NormalizedImageFormat = "webp" | "png" | "avif" | "jpeg";
 
 type ConversionResult =
   | {
-      success: true;
-      file: string;
-    }
+    success: true;
+    file: string;
+  }
   | {
-      success: false;
-      file: string;
-      error: string;
-    };
+    success: false;
+    file: string;
+    error: string;
+  };
 
 // Helper function to convert technical errors into user-friendly messages
 function getReadableError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
 
-  if (message.includes("unsupported or unrecognizable format")) {
-    return "File format not supported or file is corrupted";
-  }
-  if (message.includes("no encodable target codec")) {
-    return "Cannot encode to target format (codec not supported in this environment)";
-  }
-  if (message.includes("undecodable_source_codec")) {
-    return "Cannot decode source codec (WebCodecs API may not be available in this Bun runtime)";
-  }
-  if (
-    message.includes("VideoDecoder is not defined") ||
-    message.includes("AudioDecoder is not defined")
-  ) {
-    return "WebCodecs API not available in this Bun runtime";
-  }
-  if (message.includes("Unsupported image format")) {
-    return message;
-  }
   if (message.includes("ENOENT")) {
     return "File not found";
   }
   if (message.includes("EACCES")) {
     return "Permission denied";
   }
-  if (message.includes("Conversion validation failed")) {
-    return message.replace("Conversion validation failed: ", "");
-  }
 
-  // Return simplified error message
   return message;
 }
 
@@ -83,24 +64,6 @@ export async function convert(fileData: FileData): Promise<void> {
 
   const { filePaths, settings } = fileData;
   const { qualityLevel } = settings;
-
-  // Check if WebCodecs API is available for video/audio conversion
-  if (settings.action === "video" || settings.action === "audio") {
-    if (
-      typeof globalThis.VideoDecoder === "undefined" ||
-      typeof globalThis.AudioDecoder === "undefined"
-    ) {
-      console.log("");
-      log.error("WebCodecs API is not available in this runtime");
-      log.warning("Mediabunny requires WebCodecs for video/audio conversion");
-      console.log("");
-      log.info("Solutions:");
-      log.step("• Upgrade to the latest Bun release");
-      log.step("• Verify your source codecs are supported by WebCodecs");
-      console.log("");
-      process.exit(1);
-    }
-  }
 
   // Map quality level to Mediabunny quality constants
   let mediabunnyQuality: Quality;
@@ -231,7 +194,7 @@ export async function convert(fileData: FileData): Promise<void> {
         if (input) {
           try {
             input.dispose();
-          } catch {}
+          } catch { }
         }
 
         // Return detailed error info

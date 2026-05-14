@@ -1,12 +1,13 @@
 #!/usr/bin/env bun
-import { intro, select, isCancel, cancel, text, outro } from "@clack/prompts";
+import { intro, select, isCancel, cancel, text, outro,  } from "@clack/prompts";
 import { createFileData } from "./files.js";
 import type { OutputFormat, QualityLevel } from "./files.js";
 import { convert } from "./convert.js";
+import { version } from "../package.json";
 
 async function main() {
   console.log();
-  intro(" [ VTTC 4.0.0 ] ");
+  intro(` [ VTTC ${version} ] `);
 
   const folder = await text({
     message: "Select an input folder",

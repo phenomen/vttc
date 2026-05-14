@@ -24,23 +24,23 @@ type AudioQuality = {
 
 export type ConversionSettings =
   | {
-      format: ImageOutputFormat;
-      action: "image";
-      quality: number;
-      qualityLevel: QualityLevel;
-    }
+    format: ImageOutputFormat;
+    action: "image";
+    quality: number;
+    qualityLevel: QualityLevel;
+  }
   | {
-      format: VideoOutputFormat;
-      action: "video";
-      quality: VideoQuality;
-      qualityLevel: QualityLevel;
-    }
+    format: VideoOutputFormat;
+    action: "video";
+    quality: VideoQuality;
+    qualityLevel: QualityLevel;
+  }
   | {
-      format: AudioOutputFormat;
-      action: "audio";
-      quality: AudioQuality;
-      qualityLevel: QualityLevel;
-    };
+    format: AudioOutputFormat;
+    action: "audio";
+    quality: AudioQuality;
+    qualityLevel: QualityLevel;
+  };
 
 export type FileData = {
   filePaths: FilePathData[];
