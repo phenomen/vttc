@@ -1,6 +1,7 @@
 import { spinner, log } from "@clack/prompts";
 import { registerMediabunnyServer } from "@mediabunny/server";
 import path from "path";
+import { mkdir } from "fs/promises";
 import {
   Input,
   Output,
@@ -12,19 +13,17 @@ import {
   WebMOutputFormat,
   OggOutputFormat,
   AdtsOutputFormat,
-  QUALITY_HIGH,
-  QUALITY_MEDIUM,
-  QUALITY_LOW,
   type ConversionOptions,
-  type Quality,
 } from "mediabunny";
 import type {
   AudioOutputFormat,
+  ConversionSettings,
   FileData,
   FilePathData,
   ImageOutputFormat,
   VideoOutputFormat,
 } from "./files.js";
+import { mapWithConcurrency } from "./pool.js";
 
 registerMediabunnyServer();
 
@@ -42,7 +41,14 @@ type ConversionResult =
     error: string;
   };
 
-// Helper function to convert technical errors into user-friendly messages
+export type ConvertOutcome =
+  | { ok: true }
+  | { ok: false; exitCode: number; message: string };
+
+const IMAGE_CONCURRENCY = 8;
+const VIDEO_CONCURRENCY = 2;
+const AUDIO_CONCURRENCY = 4;
+
 function getReadableError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
 
@@ -56,234 +62,156 @@ function getReadableError(error: unknown): string {
   return message;
 }
 
-export async function convert(fileData: FileData): Promise<void> {
-  if (!fileData?.filePaths?.length) {
-    console.error("No valid files to convert");
-    process.exit(1);
+async function ensureOutputDir(outputFile: string): Promise<void> {
+  await mkdir(path.dirname(outputFile), { recursive: true });
+}
+
+function disposeInput(input: Input<FilePathSource> | undefined): void {
+  if (!input) {
+    return;
   }
 
-  const { filePaths, settings } = fileData;
-  const { qualityLevel } = settings;
+  try {
+    input.dispose();
+  } catch (disposeError) {
+    console.error(getReadableError(disposeError));
+  }
+}
 
-  // Map quality level to Mediabunny quality constants
-  let mediabunnyQuality: Quality;
-  if (qualityLevel === "high") {
-    mediabunnyQuality = QUALITY_HIGH;
-  } else if (qualityLevel === "mid") {
-    mediabunnyQuality = QUALITY_MEDIUM;
-  } else if (qualityLevel === "low") {
-    mediabunnyQuality = QUALITY_LOW;
-  } else {
-    mediabunnyQuality = QUALITY_MEDIUM; // Default fallback
+function reportResults(
+  s: ReturnType<typeof spinner>,
+  results: ConversionResult[],
+  format: string
+): ConvertOutcome {
+  const successful = results.filter((result) => result.success);
+  const failed = results.filter((result) => !result.success);
+
+  if (failed.length === 0) {
+    s.stop(`✓ Successfully converted ${successful.length} file(s) to ${format}`);
+    return { ok: true };
   }
 
-  const s = spinner();
-
-  s.start(`Converting ${filePaths.length} file(s) into ${settings.format}`);
-
-  if (settings.action === "video" || settings.action === "audio") {
-    const { action, format } = settings;
-    const transcodePromises = filePaths.map((file: FilePathData) =>
-      transcodeFile(file.input, file.output, format, mediabunnyQuality, action)
-    );
-
-    async function transcodeFile(
-      inputFile: string,
-      outputFile: string,
-      format: MediaOutputFormat,
-      mediabunnyQuality: Quality,
-      action: "video" | "audio"
-    ): Promise<ConversionResult> {
-      let input: Input<FilePathSource> | undefined;
-      try {
-        // Create input from file
-        input = new Input({
-          formats: ALL_FORMATS,
-          source: new FilePathSource(inputFile),
-        });
-
-        // Determine output format
-        let outputFormat;
-        if (format === "webm") {
-          outputFormat = new WebMOutputFormat();
-        } else if (format === "mp4") {
-          outputFormat = new Mp4OutputFormat({
-            fastStart: "in-memory",
-          });
-        } else if (format === "ogg") {
-          outputFormat = new OggOutputFormat();
-        } else if (format === "aac") {
-          outputFormat = new AdtsOutputFormat();
-        } else {
-          throw new Error(`Unsupported format: ${format}`);
-        }
-
-        // Create output
-        const output = new Output({
-          format: outputFormat,
-          target: new FilePathTarget(outputFile),
-        });
-
-        // Configure conversion options
-        const conversionOptions: ConversionOptions = {
-          input,
-          output,
-        };
-
-        // Add video options if converting video
-        if (action === "video") {
-          conversionOptions.video = {
-            bitrate: mediabunnyQuality,
-          };
-
-          // Set codec based on format
-          if (format === "webm") {
-            conversionOptions.video.codec = "vp9";
-            conversionOptions.video.alpha = "keep"; // Preserve transparency for WebM
-          } else if (format === "mp4") {
-            conversionOptions.video.codec = "avc"; // H.264 for MP4
-          }
-
-          conversionOptions.audio = {
-            bitrate: mediabunnyQuality,
-          };
-
-          // Set audio codec based on format
-          if (format === "webm") {
-            conversionOptions.audio.codec = "opus";
-          } else if (format === "mp4") {
-            conversionOptions.audio.codec = "aac";
-          }
-        }
-
-        // Add audio options if converting audio
-        if (action === "audio") {
-          conversionOptions.video = {
-            discard: true, // Remove video track for audio-only formats
-          };
-          conversionOptions.audio = {
-            bitrate: mediabunnyQuality,
-          };
-
-          // Set audio codec based on format
-          if (format === "ogg") {
-            conversionOptions.audio.codec = "opus";
-          } else if (format === "aac") {
-            conversionOptions.audio.codec = "aac";
-          }
-        }
-
-        // Initialize and execute conversion
-        const conversion = await Conversion.init(conversionOptions);
-
-        if (!conversion.isValid) {
-          const reasons = conversion.discardedTracks
-            .map((dt) => dt.reason)
-            .join(", ");
-          throw new Error(`Conversion validation failed: ${reasons}`);
-        }
-
-        await conversion.execute();
-
-        // Clean up
-        input.dispose();
-
-        return { success: true, file: inputFile };
-      } catch (error) {
-        // Clean up on error
-        if (input) {
-          try {
-            input.dispose();
-          } catch { }
-        }
-
-        // Return detailed error info
-        return {
-          success: false,
-          file: inputFile,
-          error: getReadableError(error),
-        };
-      }
-    }
-
-    // Wait for all conversions to complete
-    const results = await Promise.all(transcodePromises);
-
-    // Separate successes and failures
-    const successful = results.filter((r) => r.success);
-    const failed = results.filter((r) => !r.success);
-
-    // Report results
-    if (failed.length === 0) {
-      s.stop(`✓ Successfully converted ${successful.length} file(s)`);
-    } else if (successful.length === 0) {
-      s.stop(`✗ All conversions failed`);
-      console.log("");
-      failed.forEach(({ file, error }) => {
-        log.error(`${path.basename(file)}: ${error}`);
-      });
-      console.log("");
-      process.exit(1);
-    } else {
-      s.stop(
-        `⚠ Converted ${successful.length} file(s), ${failed.length} failed`
-      );
-      console.log("");
-      log.warning("Failed files:");
-      failed.forEach(({ file, error }) => {
-        log.error(`  ${path.basename(file)}: ${error}`);
-      });
-      console.log("");
-    }
+  if (successful.length === 0) {
+    s.stop("✗ All conversions failed");
+    console.log("");
+    failed.forEach(({ file, error }) => {
+      log.error(`${path.basename(file)}: ${error}`);
+    });
+    console.log("");
+    return { ok: false, exitCode: 1, message: "All conversions failed" };
   }
 
-  if (settings.action === "image") {
-    const { format, quality } = settings;
-    const imagePromises = filePaths.map(async (file: FilePathData): Promise<ConversionResult> => {
-      const { input: inputFile, output: outputFile } = file;
+  s.stop(`⚠ Converted ${successful.length} file(s), ${failed.length} failed`);
+  console.log("");
+  log.warning("Failed files:");
+  failed.forEach(({ file, error }) => {
+    log.error(`  ${path.basename(file)}: ${error}`);
+  });
+  console.log("");
 
-      try {
-        await convertImageFile(inputFile, outputFile, format, quality);
+  return { ok: true };
+}
 
-        return { success: true, file: inputFile };
-      } catch (error) {
-        return {
-          success: false,
-          file: inputFile,
-          error: getReadableError(error),
-        };
-      }
+async function transcodeFile(
+  inputFile: string,
+  outputFile: string,
+  format: MediaOutputFormat,
+  settings: ConversionSettings & { action: "video" | "audio" }
+): Promise<ConversionResult> {
+  let input: Input<FilePathSource> | undefined;
+
+  try {
+    await ensureOutputDir(outputFile);
+
+    input = new Input({
+      formats: ALL_FORMATS,
+      source: new FilePathSource(inputFile),
     });
 
-    // Wait for all conversions to complete
-    const results = await Promise.all(imagePromises);
-
-    // Separate successes and failures
-    const successful = results.filter((r) => r.success);
-    const failed = results.filter((r) => !r.success);
-
-    // Report results
-    if (failed.length === 0) {
-      s.stop(`✓ Successfully converted ${successful.length} file(s)`);
-    } else if (successful.length === 0) {
-      s.stop(`✗ All conversions failed`);
-      console.log("");
-      failed.forEach(({ file, error }) => {
-        log.error(`${path.basename(file)}: ${error}`);
+    let outputFormat;
+    if (format === "webm") {
+      outputFormat = new WebMOutputFormat();
+    } else if (format === "mp4") {
+      outputFormat = new Mp4OutputFormat({
+        fastStart: "in-memory",
       });
-      console.log("");
-      process.exit(1);
+    } else if (format === "ogg") {
+      outputFormat = new OggOutputFormat();
+    } else if (format === "aac") {
+      outputFormat = new AdtsOutputFormat();
     } else {
-      s.stop(
-        `⚠ Converted ${successful.length} file(s), ${failed.length} failed`
-      );
-      console.log("");
-      log.warning("Failed files:");
-      failed.forEach(({ file, error }) => {
-        log.error(`  ${path.basename(file)}: ${error}`);
-      });
-      console.log("");
+      throw new Error(`Unsupported format: ${format}`);
     }
+
+    const output = new Output({
+      format: outputFormat,
+      target: new FilePathTarget(outputFile),
+    });
+
+    const conversionOptions: ConversionOptions = {
+      input,
+      output,
+    };
+
+    if (settings.action === "video") {
+      conversionOptions.video = {
+        bitrate: settings.quality.video,
+      };
+
+      if (format === "webm") {
+        conversionOptions.video.codec = "vp9";
+        conversionOptions.video.alpha = "keep";
+      } else if (format === "mp4") {
+        conversionOptions.video.codec = "avc";
+      }
+
+      conversionOptions.audio = {
+        bitrate: settings.quality.audio,
+      };
+
+      if (format === "webm") {
+        conversionOptions.audio.codec = "opus";
+      } else if (format === "mp4") {
+        conversionOptions.audio.codec = "aac";
+      }
+    }
+
+    if (settings.action === "audio") {
+      conversionOptions.video = {
+        discard: true,
+      };
+      conversionOptions.audio = {
+        bitrate: settings.quality.audio,
+      };
+
+      if (format === "ogg") {
+        conversionOptions.audio.codec = "opus";
+      } else if (format === "aac") {
+        conversionOptions.audio.codec = "aac";
+      }
+    }
+
+    const conversion = await Conversion.init(conversionOptions);
+
+    if (!conversion.isValid) {
+      const reasons = conversion.discardedTracks
+        .map((track) => track.reason)
+        .join(", ");
+      throw new Error(`Conversion validation failed: ${reasons}`);
+    }
+
+    await conversion.execute();
+    disposeInput(input);
+
+    return { success: true, file: inputFile };
+  } catch (error) {
+    disposeInput(input);
+
+    return {
+      success: false,
+      file: inputFile,
+      error: getReadableError(error),
+    };
   }
 }
 
@@ -293,6 +221,8 @@ async function convertImageFile(
   format: ImageOutputFormat,
   quality: number
 ): Promise<void> {
+  await ensureOutputDir(outputFile);
+
   const image = Bun.file(inputFile).image();
   const { width, height } = await image.metadata();
   const outputFormat = normalizeImageFormat(format);
@@ -326,4 +256,71 @@ function normalizeImageFormat(format: ImageOutputFormat): NormalizedImageFormat 
   }
 
   return format;
+}
+
+function getConcurrency(settings: ConversionSettings): number {
+  if (settings.action === "image") {
+    return IMAGE_CONCURRENCY;
+  }
+  if (settings.action === "video") {
+    return VIDEO_CONCURRENCY;
+  }
+
+  return AUDIO_CONCURRENCY;
+}
+
+export async function convert(fileData: FileData): Promise<ConvertOutcome> {
+  if (!fileData.filePaths.length) {
+    return {
+      ok: false,
+      exitCode: 1,
+      message: "No valid files to convert",
+    };
+  }
+
+  const { filePaths, settings } = fileData;
+  const s = spinner();
+
+  s.start(`Converting ${filePaths.length} file(s) into ${settings.format}`);
+
+  const onProgress = (completed: number, total: number, file: FilePathData) => {
+    s.message(`Converting ${completed}/${total}: ${path.basename(file.input)}`);
+  };
+
+  if (settings.action === "video" || settings.action === "audio") {
+    const results = await mapWithConcurrency(
+      filePaths,
+      getConcurrency(settings),
+      (file) => transcodeFile(file.input, file.output, settings.format, settings),
+      onProgress
+    );
+
+    return reportResults(s, results, settings.format);
+  }
+
+  const results = await mapWithConcurrency(
+    filePaths,
+    getConcurrency(settings),
+    async (file) => {
+      try {
+        await convertImageFile(
+          file.input,
+          file.output,
+          settings.format,
+          settings.quality
+        );
+
+        return { success: true, file: file.input } satisfies ConversionResult;
+      } catch (error) {
+        return {
+          success: false,
+          file: file.input,
+          error: getReadableError(error),
+        } satisfies ConversionResult;
+      }
+    },
+    onProgress
+  );
+
+  return reportResults(s, results, settings.format);
 }

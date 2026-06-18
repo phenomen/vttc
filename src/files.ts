@@ -1,5 +1,5 @@
 import path from "path";
-import { mkdir } from "fs/promises";
+import { stat } from "fs/promises";
 
 export type ImageOutputFormat = "webp" | "png" | "avif" | "jpg" | "jpeg" | "jfif";
 export type VideoOutputFormat = "webm" | "mp4";
@@ -45,12 +45,9 @@ export type ConversionSettings =
 export type FileData = {
   filePaths: FilePathData[];
   settings: ConversionSettings;
+  inputFolder: string;
+  outputFolder: string;
 };
-
-let compatibleFormats: readonly string[] = [];
-let settings: ConversionSettings;
-let action: ConversionAction;
-let quality: ConversionSettings["quality"];
 
 const formatsImage = [
   ".avif",
@@ -61,7 +58,8 @@ const formatsImage = [
   ".tiff",
   ".webp",
   ".jfif",
-];
+] as const;
+
 const formatsVideo = [
   ".avi",
   ".m4v",
@@ -71,7 +69,8 @@ const formatsVideo = [
   ".mpeg",
   ".webm",
   ".wmv",
-];
+] as const;
+
 const formatsAudio = [
   ...formatsVideo,
   ".aac",
@@ -80,7 +79,7 @@ const formatsAudio = [
   ".mp3",
   ".ogg",
   ".wav",
-];
+] as const;
 
 const imageOutputFormats: readonly ImageOutputFormat[] = [
   "webp",
@@ -90,8 +89,11 @@ const imageOutputFormats: readonly ImageOutputFormat[] = [
   "jpeg",
   "jfif",
 ];
+
 const videoOutputFormats: readonly VideoOutputFormat[] = ["webm", "mp4"];
 const audioOutputFormats: readonly AudioOutputFormat[] = ["ogg", "aac"];
+
+const OUTPUT_DIR_NAME = "output";
 
 function isImageFormat(format: OutputFormat): format is ImageOutputFormat {
   return imageOutputFormats.includes(format as ImageOutputFormat);
@@ -119,59 +121,133 @@ function getImageQuality(userQuality: QualityLevel): number {
 function getVideoQuality(userQuality: QualityLevel): VideoQuality {
   if (userQuality === "high") {
     return {
-      video: 2_000_000, // 2 Mbps
-      audio: 96_000, // 96 kbps
+      video: 2_000_000,
+      audio: 96_000,
     };
   }
   if (userQuality === "low") {
     return {
-      video: 512_000, // 512 kbps
-      audio: 96_000, // 96 kbps
+      video: 512_000,
+      audio: 96_000,
     };
   }
 
   return {
-    video: 1_000_000, // 1 Mbps
-    audio: 96_000, // 96 kbps
+    video: 1_000_000,
+    audio: 96_000,
   };
 }
 
 function getAudioQuality(userQuality: QualityLevel): AudioQuality {
   if (userQuality === "high") {
     return {
-      audio: 160_000, // 160 kbps
+      audio: 160_000,
     };
   }
   if (userQuality === "low") {
     return {
-      audio: 96_000, // 96 kbps
+      audio: 96_000,
     };
   }
 
   return {
-    audio: 128_000, // 128 kbps
+    audio: 128_000,
   };
 }
 
-function setSettings(userFormat: OutputFormat, userQuality: QualityLevel): void {
+export function buildSettings(
+  userFormat: OutputFormat,
+  userQuality: QualityLevel
+): ConversionSettings {
   if (isImageFormat(userFormat)) {
-    action = "image";
-    compatibleFormats = formatsImage;
-    quality = getImageQuality(userQuality);
-  } else if (isVideoFormat(userFormat)) {
-    action = "video";
-    compatibleFormats = formatsVideo;
-    quality = getVideoQuality(userQuality);
-  } else if (isAudioFormat(userFormat)) {
-    action = "audio";
-    compatibleFormats = formatsAudio;
-    quality = getAudioQuality(userQuality);
-  } else {
-    console.error("Unknown output format");
-    process.exit(0);
+    return {
+      format: userFormat,
+      action: "image",
+      quality: getImageQuality(userQuality),
+      qualityLevel: userQuality,
+    };
   }
 
-  settings = { format: userFormat, action, quality, qualityLevel: userQuality } as ConversionSettings;
+  if (isVideoFormat(userFormat)) {
+    return {
+      format: userFormat,
+      action: "video",
+      quality: getVideoQuality(userQuality),
+      qualityLevel: userQuality,
+    };
+  }
+
+  if (isAudioFormat(userFormat)) {
+    return {
+      format: userFormat,
+      action: "audio",
+      quality: getAudioQuality(userQuality),
+      qualityLevel: userQuality,
+    };
+  }
+
+  throw new Error(`Unknown output format: ${userFormat}`);
+}
+
+function getCompatibleExtensions(action: ConversionAction): readonly string[] {
+  if (action === "image") {
+    return formatsImage;
+  }
+  if (action === "video") {
+    return formatsVideo;
+  }
+
+  return formatsAudio;
+}
+
+function isUnderOutputDir(relativePath: string): boolean {
+  const normalized = relativePath.replaceAll("\\", "/");
+  return normalized === OUTPUT_DIR_NAME || normalized.startsWith(`${OUTPUT_DIR_NAME}/`);
+}
+
+export async function resolveInputFolder(folder: string): Promise<string> {
+  const resolved = path.resolve(folder);
+
+  try {
+    const folderStat = await stat(resolved);
+    if (!folderStat.isDirectory()) {
+      throw new Error(`Not a folder: ${resolved}`);
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("Not a folder:")) {
+      throw error;
+    }
+
+    throw new Error(`Folder not found: ${resolved}`);
+  }
+
+  return resolved;
+}
+
+export function getActionLabel(action: ConversionAction): string {
+  if (action === "image") {
+    return "image";
+  }
+  if (action === "video") {
+    return "video";
+  }
+
+  return "audio";
+}
+
+export function getQualityLabel(quality: QualityLevel): string {
+  if (quality === "high") {
+    return "high";
+  }
+  if (quality === "low") {
+    return "low";
+  }
+
+  return "medium";
+}
+
+export function countGifInputs(filePaths: readonly FilePathData[]): number {
+  return filePaths.filter((file) => path.extname(file.input).toLowerCase() === ".gif").length;
 }
 
 export async function createFileData(
@@ -179,35 +255,39 @@ export async function createFileData(
   userFormat: OutputFormat,
   userQuality: QualityLevel
 ): Promise<FileData> {
-  setSettings(userFormat, userQuality);
+  const resolvedFolder = await resolveInputFolder(inputFolder);
+  const settings = buildSettings(userFormat, userQuality);
+  const compatibleFormats = getCompatibleExtensions(settings.action);
+  const outputFolder = path.join(resolvedFolder, OUTPUT_DIR_NAME);
 
   const filePaths: FilePathData[] = [];
   const glob = new Bun.Glob("**/*");
 
-  for await (const file of glob.scan({ cwd: inputFolder, onlyFiles: true })) {
-    const filePath = path.join(inputFolder, file);
-
-    if (compatibleFormats.includes(path.extname(file).toLowerCase())) {
-      const outputPath = path.join(inputFolder, "output", file);
-      const outputDir = path.dirname(outputPath);
-
-      try {
-        await mkdir(outputDir, { recursive: true });
-
-        const outputFileName =
-          path.basename(outputPath, path.extname(outputPath)) + `.${userFormat}`;
-        const finalOutputPath = path.join(outputDir, outputFileName);
-
-        filePaths.push({
-          input: path.normalize(filePath),
-          output: path.normalize(finalOutputPath),
-        });
-      } catch (err) {
-        console.error(`Error creating directory: ${outputDir}`);
-        console.error(err);
-      }
+  for await (const file of glob.scan({ cwd: resolvedFolder, onlyFiles: true })) {
+    if (isUnderOutputDir(file)) {
+      continue;
     }
+
+    if (!compatibleFormats.includes(path.extname(file).toLowerCase())) {
+      continue;
+    }
+
+    const inputPath = path.join(resolvedFolder, file);
+    const outputPath = path.join(outputFolder, file);
+    const outputFileName =
+      path.basename(outputPath, path.extname(outputPath)) + `.${userFormat}`;
+    const finalOutputPath = path.join(path.dirname(outputPath), outputFileName);
+
+    filePaths.push({
+      input: path.normalize(inputPath),
+      output: path.normalize(finalOutputPath),
+    });
   }
 
-  return { filePaths, settings };
+  return {
+    filePaths,
+    settings,
+    inputFolder: resolvedFolder,
+    outputFolder,
+  };
 }
