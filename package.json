@@ -1,6 +1,6 @@
 {
   "name": "vttc",
-  "version": "4.4.0",
+  "version": "5.0.0",
   "description": "CLI file converter and optimizer for popular media formats. Requires Bun.",
   "repository": "phenomen/vttc",
   "author": "phenomen",
@@ -30,12 +30,12 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "@clack/prompts": "^1.4.0",
-    "@mediabunny/server": "^1.45.2",
-    "mediabunny": "^1.45.2"
+    "@clack/prompts": "^1.5.1",
+    "@mediabunny/server": "^1.48.1",
+    "mediabunny": "^1.48.1"
   },
   "overrides": {
-    "node-av": "5.2.4"
+    "node-av": "6.0.0"
   },
   "trustedDependencies": [
     "node-av"
